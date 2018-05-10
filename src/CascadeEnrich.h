@@ -360,7 +360,22 @@ class CascadeEnrich : public cyclus::Facility {
     "uilabel" : "Tails Commodity", \
     "uitype" : "outcommodity" }
   std::string tails_commod;
+  
 
+
+  #pragma cyclus var { \
+    "default": {}, \
+    "tooltip": "super product assay threshold", \
+    "uilabel": "Super product assay", \
+    "doc": "assay obove which the roduct is consider as super produt",\
+  "uitype": ["oneormore", "incommodity", "double"], \
+    "alias": [ "commodities", "commodity", "assay"]}
+  std::map<std::string, double> super_product;
+
+#pragma cyclus var { \
+    "default": 0, \
+    "userlevel": 10}
+  bool exclusive_mat_trad;
 
 #pragma cyclus var {}
   cyclus::toolkit::ResBuf<cyclus::Material> tails;  // depleted u
@@ -368,6 +383,8 @@ class CascadeEnrich : public cyclus::Facility {
   // used to total intra-timestep swu and natu usage for meeting requests -
   // these help enable time series generation.
   double intra_timestep_feed_;
+  std::string real_tails_commod = tails_commod;
+  std::string real_product_commod = product_commod;
 
 // END LEGACY
 

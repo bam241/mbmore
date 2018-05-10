@@ -40,7 +40,8 @@ CascadeEnrich::~CascadeEnrich() {}
 std::string CascadeEnrich::str() {
   std::stringstream ss;
   ss << cyclus::Facility::str() << " with enrichment facility parameters:"
-     << " * Tails assay: " << design_tails_assay << " * Feed assay: " << design_feed_assay
+     << " * Tails assay: " << design_tails_assay
+     << " * Feed assay: " << design_feed_assay
      << " * Input cyclus::Commodity: " << feed_commod
      << " * Output cyclus::Commodity: " << product_commod
      << " * Tails cyclus::Commodity: " << tails_commod;
@@ -78,7 +79,8 @@ void CascadeEnrich::EnterNotify() {
     std::cout << " machine: " << it->second.n_machines;
     std::cout << std::endl;
   }
-  std::cout << "Dsign Feed Flow " << FlowPerMon(cascade.FeedFlow()) << std::endl;
+  std::cout << "Dsign Feed Flow " << FlowPerMon(cascade.FeedFlow())
+            << std::endl;
   if (max_feed_inventory > 0) {
     inventory.capacity(max_feed_inventory);
   }
@@ -92,7 +94,30 @@ void CascadeEnrich::EnterNotify() {
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-void CascadeEnrich::Tick() {}
+void CascadeEnrich::Tick() {
+
+  double actual_tail_assay = TailsAssay(FeedAssay(inventory.quantity()));
+  double actual_prod_assay = ProductAssay(FeedAssay(inventory.quantity()));
+  
+  real_product_commod = product_commod;
+  real_tails_commod = tails_commod;
+  std::map<std::string, double>::iterator it2;
+  double last_tails = 0;
+  double last_product = 0;
+    for (it2 = super_product.begin(); it2 != super_product.end(); it2++) {
+      if (actual_prod_assay >= it2->second && it2->second > last_product) {
+        last_product = it2->second;
+        real_product_commod = it2->first;
+      }
+    }
+    //separation the loops prevent the tail and the product to be sent in the same place...
+    for (it2 = super_product.begin(); it2 != super_product.end(); it2++) {
+      if (it2->first != real_product_commod && actual_tail_assay >= it2->second && it2->second > last_tails) {
+        last_tails = it2->second;
+        real_tails_commod = it2->first;
+      }
+    }
+}
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CascadeEnrich::Tock() {
@@ -116,7 +141,7 @@ CascadeEnrich::GetMatlRequests() {
   double amt = mat->quantity();
 
   if (amt > cyclus::eps_rsrc()) {
-    port->AddRequest(mat, this, feed_commod);
+    port->AddRequest(mat, this, feed_commod,exclusive_mat_trad);
     ports.insert(port);
   }
 
@@ -180,6 +205,11 @@ void CascadeEnrich::AcceptMatlTrades(
   for (it = responses.begin(); it != responses.end(); ++it) {
     AddMat_(it->second);
   }
+  if (inventory.count() > 1 && inventory.quantity() >0) {
+    inventory.Push(cyclus::toolkit::Squash(inventory.PopN(inventory.count())));
+  }  else if( inventory.quantity() == 0){
+    inventory.PopN(inventory.count());
+  }
 }
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 void CascadeEnrich::AddMat_(cyclus::Material::Ptr mat) {
@@ -236,12 +266,14 @@ CascadeEnrich::GetMatlBids(
   using cyclus::toolkit::MatVec;
 
   std::set<BidPortfolio<Material>::Ptr> ports;
+  
+  // Make sure to offer super product at the correct enrichment level
 
-  if ((out_requests.count(tails_commod) > 0) && (tails.quantity() > 0)) {
+  if ((out_requests.count(real_tails_commod) > 0) && (tails.quantity() > 0)) {
     BidPortfolio<Material>::Ptr tails_port(new BidPortfolio<Material>());
 
     std::vector<Request<Material>*>& tails_requests =
-        out_requests[tails_commod];
+        out_requests[real_tails_commod];
     std::vector<Request<Material>*>::iterator it;
     for (it = tails_requests.begin(); it != tails_requests.end(); ++it) {
       // offer bids for all tails material, keeping discrete quantities
@@ -250,6 +282,7 @@ CascadeEnrich::GetMatlBids(
       tails.Push(mats);
       for (int k = 0; k < mats.size(); k++) {
         Material::Ptr m = mats[k];
+        double offer_assay = cyclus::toolkit::UraniumAssay(m);
         Request<Material>* req = *it;
         tails_port->AddBid(req, m, this);
       }
@@ -264,17 +297,22 @@ CascadeEnrich::GetMatlBids(
     ports.insert(tails_port);
   }
 
-  if ((out_requests.count(product_commod) > 0) && (inventory.quantity() > 0)) {
+  if ((out_requests.count(real_product_commod) > 0) &&
+      (inventory.quantity() > 0)) {
     BidPortfolio<Material>::Ptr commod_port(new BidPortfolio<Material>());
 
     std::vector<Request<Material>*>& commod_requests =
-        out_requests[product_commod];
+        out_requests[real_product_commod];
     std::vector<Request<Material>*>::iterator it;
     for (it = commod_requests.begin(); it != commod_requests.end(); ++it) {
       Request<Material>* req = *it;
       Material::Ptr offer = Offer_(req->target());
+
+      double offer_assay = cyclus::toolkit::UraniumAssay(offer);
       // The offer might not match the required enrichment ! it just produce
       // what it can according to the cascade configuration and the feed asays
+      //
+      // Making sure not to offer super product as product commodity
       commod_port->AddBid(req, offer, this);
     }
 
@@ -312,7 +350,6 @@ void CascadeEnrich::GetMatlTrades(
                           cyclus::Material::Ptr>>& responses) {
   using cyclus::Material;
   using cyclus::Trade;
-
   intra_timestep_feed_ = 0;
   std::vector<Trade<Material>>::const_iterator it;
   for (it = trades.begin(); it != trades.end(); ++it) {
@@ -321,16 +358,16 @@ void CascadeEnrich::GetMatlTrades(
     Material::Ptr response;
     // Figure out whether material is tails or enriched,
     // if tails then make transfer of material
-    if (commod_type == tails_commod) {
+    if (commod_type == real_tails_commod) {
       LOG(cyclus::LEV_INFO5, "EnrFac")
           << prototype() << " just received an order"
-          << " for " << it->amt << " of " << tails_commod;
-      double pop_qty = std::min(qty, tails.quantity());
+          << " for " << it->amt << " of " << commod_type;
+  double pop_qty = std::min(qty, tails.quantity());
       response = tails.Pop(pop_qty, cyclus::eps_rsrc());
     } else {
       LOG(cyclus::LEV_INFO5, "EnrFac")
           << prototype() << " just received an order"
-          << " for " << it->amt << " of " << product_commod;
+          << " for " << it->amt << " of " << commod_type;
       response = Enrich_(it->bid->offer(), qty);
     }
     responses.push_back(std::make_pair(*it, response));
@@ -358,7 +395,6 @@ cyclus::Material::Ptr CascadeEnrich::Enrich_(cyclus::Material::Ptr mat,
   double feed_assay = FeedAssay(feed_qty);
   double product_assay = ProductAssay(feed_assay);
 
-
   double tails_assay = TailsAssay(FeedAssay(feed_qty));
   double tails_mass = TailsFlow(feed_qty);
   // Determine the composition of the natural uranium
@@ -377,7 +413,7 @@ cyclus::Material::Ptr CascadeEnrich::Enrich_(cyclus::Material::Ptr mat,
   Material::Ptr r;
   try {
     // required so popping doesn't take out too much
-    if (cyclus::AlmostEq(feed_req, inventory.quantity())) {
+    if (cyclus::AlmostEq(feed_req, inventory.quantity())  && feed_req !=0) {
       r = cyclus::toolkit::Squash(inventory.PopN(inventory.count()));
     } else {
       r = inventory.Pop(feed_req, cyclus::eps_rsrc());
@@ -466,19 +502,21 @@ double CascadeEnrich::FeedAssay(double quantity) {
 }
 
 double CascadeEnrich::ProductAssay(double feed_assay) {
-  CascadeConfig cascade_tmp = cascade.Compute_Assay(feed_assay, precision, fix_ab);
+  CascadeConfig cascade_tmp =
+      cascade.Compute_Assay(feed_assay, precision, fix_ab);
   return cascade_tmp.stgs_config.rbegin()->second.product_assay;
 }
 double CascadeEnrich::TailsAssay(double feed_assay) {
-  CascadeConfig cascade_tmp = cascade.Compute_Assay(feed_assay, precision, fix_ab);
+  CascadeConfig cascade_tmp =
+      cascade.Compute_Assay(feed_assay, precision, fix_ab);
   return cascade_tmp.stgs_config.begin()->second.tail_assay;
 }
 
-double CascadeEnrich::MaxFeedFlow(double feed_assay){
-  CascadeConfig cascade_tmp = cascade.Compute_Assay(feed_assay, precision, fix_ab);
+double CascadeEnrich::MaxFeedFlow(double feed_assay) {
+  CascadeConfig cascade_tmp =
+      cascade.Compute_Assay(feed_assay, precision, fix_ab);
 
   return FlowPerMon(cascade_tmp.FeedFlow());
-
 }
 
 double CascadeEnrich::FeedRequired(double prod_qty) {
@@ -507,8 +545,9 @@ double CascadeEnrich::FeedRequired(double prod_qty) {
 double CascadeEnrich::ProductFlow(double feed_flow) {
   double feed_assay = FeedAssay(feed_flow);
   double feed_ratio = feed_flow / MaxFeedFlow(feed_assay);
-  CascadeConfig cascade_tmp = cascade.Compute_Assay(feed_assay, precision, fix_ab);
-   
+  CascadeConfig cascade_tmp =
+      cascade.Compute_Assay(feed_assay, precision, fix_ab);
+
   StageConfig last_stg = cascade_tmp.stgs_config.rbegin()->second;
   double product_flow = last_stg.feed_flow * last_stg.cut;
   return feed_ratio * FlowPerMon(product_flow);
