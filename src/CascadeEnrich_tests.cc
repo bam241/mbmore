@@ -293,7 +293,7 @@ TEST_F(CascadeEnrichTest, NoBidPrefs) {
       "   <tails_commod>tails</tails_commod> "
       "   <tails_assay>0.003</tails_assay> "
       "   <max_feed_inventory>2.0</max_feed_inventory> "
-      "   <order_prefs>0</order_prefs> ";
+      "   <order_prefs>1</order_prefs> ";
 
   int simdur = 1;
   cyclus::MockSim sim(cyclus::AgentSpec(":mbmore:CascadeEnrich"), config,
