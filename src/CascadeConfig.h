@@ -30,12 +30,26 @@ class CascadeConfig {
   // Solve the flow matrix from the stages cuts
   void CalcFeedFlows();
   // DO something ?!
-  void CalcStageFeatures();
+  void PopulateStages();
+  
   // Scale the Casacde to meet the limitation in max feed or max centrifuges
-  void DesignCascade(double max_feed, int max_centrifuges);
+  void ScaleCascade(double max_feed, int max_centrifuges);
+
+  CascadeConfig ModelMissUsedCascade(double f_assay, int modeling_opt = 0, double precision = 1e-8);
 
   // Compute the response of the cascade to a non ideal feed assay
-  CascadeConfig Compute_Assay(double feed_assay, double precision, bool u_cut = false);
+  void PropagateAssay(double f_assay);
+  
+  
+  // Propagate iterratively the assay assuming
+  // Alpha constant
+  void ComputeAssayByAlpha(double f_assay, double precision = 1e-8);
+  // Gamma constant
+  void ComputeAssayByGamma(double f_assay, double precision = 1e-8);
+  
+  
+  void UpdateCut();
+  void UpdateFlow();
 
   double FeedFlow() { return feed_flow; }
   // Configuration of the centrifuges in the stages
@@ -62,13 +76,16 @@ class CascadeConfig {
   double design_tail_assay;
   
   // Method to check the assays different between 2 cascades
-  double Diff_enrichment(CascadeConfig actual_enrichments,
-                         CascadeConfig previous_enrichement);
+  double DeltaEnrichment(CascadeConfig actual_enrichments,
+                         CascadeConfig previous_enrichment);
 
   // method computing one iteration, of the algorithm used to get the response
   // to non ideal feed assay 
-  std::map<int, StageConfig> Update_enrichment(CascadeConfig cascade,
-                                               double feed_assay, bool u_cut = false);
+  void IterrateEnrichment(double feed_assay);
+  // recompute product assay, beta and tails assay from alpha, cut and feed assay
+  void UpdateByAlpha();
+  //recompute alpha, product assay, beta and tails assay from gamma, cut and feed assay
+  void UpdateByGamma();
 };
 
 }  // namespace mbmore

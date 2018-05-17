@@ -178,8 +178,8 @@ class CascadeEnrich : public cyclus::Facility {
   CentrifugeConfig centrifuge;
   CascadeConfig cascade;
   double precision = 1e-15;
-  
-  
+
+
   const double secpermonth = 60.*60.*24.*(365.25/12.);
 
   // Set to design_tails at beginning of simulation. Gets reset if
@@ -213,7 +213,7 @@ class CascadeEnrich : public cyclus::Facility {
     "doc": "amount of natural uranium stored at the enrichment " \
     "facility at the beginning of the simulation (kg)" }
   double initial_feed;
-  
+
   #pragma cyclus var { \
     "default": 1e299, "tooltip": "max inventory of feed material (kg)", \
     "uilabel": "Maximum Feed Inventory", \
@@ -304,14 +304,17 @@ class CascadeEnrich : public cyclus::Facility {
     "uilabel" : "Max feed rate for single centrifuge (mg/sec)", \
   "doc" : "maximum feed rate for a single centrifuge (mg/sec)"}
   double machine_feed;
-  
-#pragma cyclus var { \
+
+  #pragma cyclus var { \
     "default": 0, \
     "userlevel": 10, \
-    "tooltip": "Fix ALpha Beta recompute Theta", \
-    "uilabel": "recompute theta to maintain alpha and beta", \
-    "doc": "maintain alpha beta constant and recompute the cut for it" }
-  bool fix_ab;
+    "tooltip": "Modeling option for miss-use calculation", \
+    "uilabel": "Miss-use Modeling", \
+    "doc": "Miss-use modeling option: " \
+    " - 0: alpha-theta fix -- beta varies, " \
+    " - 1: alpha=beta fix -- theta varies, " \
+    " - 2: alpha*beta fix "}
+  int miss_use_model;
 
 
 
@@ -360,10 +363,8 @@ class CascadeEnrich : public cyclus::Facility {
     "uilabel" : "Tails Commodity", \
     "uitype" : "outcommodity" }
   std::string tails_commod;
-  
 
-
-  #pragma cyclus var { \
+#pragma cyclus var { \
     "default": {}, \
     "tooltip": "super product assay threshold", \
     "uilabel": "Super product assay", \

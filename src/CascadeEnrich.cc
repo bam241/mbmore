@@ -31,7 +31,7 @@ CascadeEnrich::CascadeEnrich(cyclus::Context* ctx)
       feed_commod(""),
       product_commod(""),
       tails_commod(""),
-      fix_ab(false),
+      miss_use_model(0),
       order_prefs(true) {}
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 CascadeEnrich::~CascadeEnrich() {}
@@ -40,8 +40,7 @@ CascadeEnrich::~CascadeEnrich() {}
 std::string CascadeEnrich::str() {
   std::stringstream ss;
   ss << cyclus::Facility::str() << " with enrichment facility parameters:"
-     << " * Tails assay: " << design_tails_assay
-     << " * Feed assay: " << design_feed_assay
+     << " * Tails assay: " << design_tails_assay << " * Feed assay: " << design_feed_assay
      << " * Input cyclus::Commodity: " << feed_commod
      << " * Output cyclus::Commodity: " << product_commod
      << " * Tails cyclus::Commodity: " << tails_commod;
@@ -79,8 +78,7 @@ void CascadeEnrich::EnterNotify() {
     std::cout << " machine: " << it->second.n_machines;
     std::cout << std::endl;
   }
-  std::cout << "Dsign Feed Flow " << FlowPerMon(cascade.FeedFlow())
-            << std::endl;
+  std::cout << "Dsign Feed Flow " << FlowPerMon(cascade.FeedFlow()) << std::endl;
   if (max_feed_inventory > 0) {
     inventory.capacity(max_feed_inventory);
   }
@@ -307,12 +305,8 @@ CascadeEnrich::GetMatlBids(
     for (it = commod_requests.begin(); it != commod_requests.end(); ++it) {
       Request<Material>* req = *it;
       Material::Ptr offer = Offer_(req->target());
-
-      double offer_assay = cyclus::toolkit::UraniumAssay(offer);
       // The offer might not match the required enrichment ! it just produce
       // what it can according to the cascade configuration and the feed asays
-      //
-      // Making sure not to offer super product as product commodity
       commod_port->AddBid(req, offer, this);
     }
 
@@ -350,6 +344,7 @@ void CascadeEnrich::GetMatlTrades(
                           cyclus::Material::Ptr>>& responses) {
   using cyclus::Material;
   using cyclus::Trade;
+  
   intra_timestep_feed_ = 0;
   std::vector<Trade<Material>>::const_iterator it;
   for (it = trades.begin(); it != trades.end(); ++it) {
@@ -394,6 +389,7 @@ cyclus::Material::Ptr CascadeEnrich::Enrich_(cyclus::Material::Ptr mat,
 
   double feed_assay = FeedAssay(feed_qty);
   double product_assay = ProductAssay(feed_assay);
+
 
   double tails_assay = TailsAssay(FeedAssay(feed_qty));
   double tails_mass = TailsFlow(feed_qty);
@@ -502,19 +498,16 @@ double CascadeEnrich::FeedAssay(double quantity) {
 }
 
 double CascadeEnrich::ProductAssay(double feed_assay) {
-  CascadeConfig cascade_tmp =
-      cascade.Compute_Assay(feed_assay, precision, fix_ab);
+  CascadeConfig cascade_tmp = cascade.ModelMissUsedCascade(feed_assay, miss_use_model, precision);
   return cascade_tmp.stgs_config.rbegin()->second.product_assay;
 }
 double CascadeEnrich::TailsAssay(double feed_assay) {
-  CascadeConfig cascade_tmp =
-      cascade.Compute_Assay(feed_assay, precision, fix_ab);
+  CascadeConfig cascade_tmp = cascade.ModelMissUsedCascade(feed_assay, miss_use_model, precision);
   return cascade_tmp.stgs_config.begin()->second.tail_assay;
 }
 
-double CascadeEnrich::MaxFeedFlow(double feed_assay) {
-  CascadeConfig cascade_tmp =
-      cascade.Compute_Assay(feed_assay, precision, fix_ab);
+double CascadeEnrich::MaxFeedFlow(double feed_assay){
+  CascadeConfig cascade_tmp = cascade.ModelMissUsedCascade(feed_assay, miss_use_model, precision);
 
   return FlowPerMon(cascade_tmp.FeedFlow());
 }
@@ -545,9 +538,8 @@ double CascadeEnrich::FeedRequired(double prod_qty) {
 double CascadeEnrich::ProductFlow(double feed_flow) {
   double feed_assay = FeedAssay(feed_flow);
   double feed_ratio = feed_flow / MaxFeedFlow(feed_assay);
-  CascadeConfig cascade_tmp =
-      cascade.Compute_Assay(feed_assay, precision, fix_ab);
-
+  CascadeConfig cascade_tmp = cascade.ModelMissUsedCascade(feed_assay, miss_use_model, precision);
+   
   StageConfig last_stg = cascade_tmp.stgs_config.rbegin()->second;
   double product_flow = last_stg.feed_flow * last_stg.cut;
   return feed_ratio * FlowPerMon(product_flow);
