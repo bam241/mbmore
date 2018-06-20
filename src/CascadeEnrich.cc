@@ -112,10 +112,12 @@ void CascadeEnrich::Tick() {
       }
     }
     //separation the loops prevent the tail and the product to be sent in the same place...
-    for (it2 = super_product.begin(); it2 != super_product.end(); it2++) {
-      if (it2->first != real_product_commod && actual_tail_assay >= it2->second && it2->second > last_tails) {
-        last_tails = it2->second;
-        real_tails_commod = it2->first;
+    if(tail_recycling){
+      for (it2 = super_product.begin(); it2 != super_product.end(); it2++) {
+        if (it2->first != real_product_commod && actual_tail_assay >= it2->second && it2->second > last_tails) {
+          last_tails = it2->second;
+          real_tails_commod = it2->first;
+        }
       }
     }
 }

@@ -272,35 +272,35 @@ class CascadeEnrich : public cyclus::Facility {
     "default" : 485.0, \
     "tooltip" : "Centrifuge velocity (m/s)", \
     "uilabel" : "Centrifuge velocity (m/s)", \
-  "doc" : "operational centrifuge velocity (m/s) at the outer radius (a)"}
+    "doc" : "operational centrifuge velocity (m/s) at the outer radius (a)"}
   double centrifuge_velocity;
 
-#pragma cyclus var {						\
+  #pragma cyclus var {						\
     "default" : 0.5, \
     "tooltip" : "Centrifuge height (m)", \
     "uilabel" : "Centrifuge height (m)", \
-  "doc" : "height of centrifuge (m)"}
+    "doc" : "height of centrifuge (m)"}
   double height;
 
-#pragma cyclus var {					  \
+  #pragma cyclus var {					  \
     "default" : 0.15, \
     "tooltip" : "Centrifuge diameter (m)", \
     "uilabel" : "Centrifuge diameter (m)", \
-  "doc" : "diameter of centrifuge (m)"}
+    "doc" : "diameter of centrifuge (m)"}
   double diameter;
 
-#pragma cyclus var {					  \
+  #pragma cyclus var {					  \
     "default" : 2, \
     "tooltip" : "Centrifuge L/F* ", \
     "uilabel" : "Centrifuge Countercurrent to feed ratio", \
-  "doc" : "Countercurrent to feed ratio"}
+    "doc" : "Countercurrent to feed ratio"}
   double L_over_F;
 
-#pragma cyclus var {					  \
+  #pragma cyclus var {					  \
     "default" : 15.0, \
     "tooltip" : "Centrifuge feed rate (mg/sec)", \
     "uilabel" : "Max feed rate for single centrifuge (mg/sec)", \
-  "doc" : "maximum feed rate for a single centrifuge (mg/sec)"}
+    "doc" : "maximum feed rate for a single centrifuge (mg/sec)"}
   double machine_feed;
 
   #pragma cyclus var { \
@@ -362,21 +362,30 @@ class CascadeEnrich : public cyclus::Facility {
     "uitype" : "outcommodity" }
   std::string tails_commod;
 
-#pragma cyclus var { \
+  #pragma cyclus var { \
+    "default": 1, \
+    "userlevel": 10, \
+    "tooltip": "Tails recycling", \
+    "uilabel": "Offers tails materials as a commodity defined according to its enrichment", \
+    "doc": "the tails commodity change accordingly to its enrichments, allowing to recycle it" }
+  bool tail_recycling;
+  
+
+  #pragma cyclus var { \
     "default": {}, \
     "tooltip": "super product assay threshold", \
     "uilabel": "Super product assay", \
     "doc": "assay obove which the roduct is consider as super produt",\
-  "uitype": ["oneormore", "incommodity", "double"], \
+    "uitype": ["oneormore", "incommodity", "double"], \
     "alias": [ "commodities", "commodity", "assay"]}
   std::map<std::string, double> super_product;
 
-#pragma cyclus var { \
+  #pragma cyclus var { \
     "default": 0, \
-    "userlevel": 10}
+    "userlevel": 10 }
   bool exclusive_mat_trad;
 
-#pragma cyclus var {}
+  #pragma cyclus var {}
   cyclus::toolkit::ResBuf<cyclus::Material> tails;  // depleted u
 
   // used to total intra-timestep swu and natu usage for meeting requests -
