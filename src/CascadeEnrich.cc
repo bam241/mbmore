@@ -183,16 +183,19 @@ void CascadeEnrich::AdjustMatlPrefs(
       int new_pref = bidit + 10;
 
       // For any bids with U-235 qty=0, set pref to zero.
+      cyclus::Material::Ptr mat = bids_vector[bidit]->offer();
       if (!u235_mass) {
-        cyclus::Material::Ptr mat = bids_vector[bidit]->offer();
         cyclus::toolkit::MatQuery mq(mat);
         if (mq.mass(922350000) == 0) {
           new_pref = -1;
         } else {
           u235_mass = true;
         }
+      
       }
-      (reqit->second)[bids_vector[bidit]] = new_pref;
+      if( std::abs(mat->quantity()-inventory.space()) <= cyclus::eps_rsrc()){ 
+        (reqit->second)[bids_vector[bidit]] = new_pref;
+      }
     }  // each bid
   }    // each Material Request
 }

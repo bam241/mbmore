@@ -381,7 +381,7 @@ class CascadeEnrich : public cyclus::Facility {
   std::map<std::string, double> super_product;
 
   #pragma cyclus var { \
-    "default": 0, \
+    "default": 1, \
     "userlevel": 10 }
   bool exclusive_mat_trad;
 
