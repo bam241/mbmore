@@ -52,6 +52,8 @@ class CascadeConfig {
   void UpdateFlow();
 
   double FeedFlow() { return feed_flow; }
+  double ProductFlow();
+  double TailFlow();
   // Configuration of the centrifuges in the stages
   CentrifugeConfig centrifuge;
   // Map of all the stage configuration

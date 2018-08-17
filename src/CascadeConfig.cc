@@ -209,6 +209,7 @@ void CascadeConfig::ScaleCascade(double max_feed, int max_centrifuges) {
     CalcFeedFlows();
     PopulateStages();
     machines_needed = FindTotalMachines();
+    UpdateFlow();
   }
   n_machines = machines_needed;
 }
@@ -240,7 +241,7 @@ void CascadeConfig::UpdateFlow() {
   // recompute the flow according to the new cuts  
   (*this).CalcFeedFlows();
   
-  double ratio = 1;
+  double ratio = 1.e100;
   std::map<int, StageConfig>::iterator it;
   for (it = (*this).stgs_config.begin(); it != (*this).stgs_config.end();
        it++) {
@@ -248,16 +249,16 @@ void CascadeConfig::UpdateFlow() {
         (*this).stgs_config.find(it->first);
     double max_stg_flow =
         it_real->second.n_machines * it_real->second.centrifuge.feed;
-    double stg_flow_ratio = it->second.feed_flow / max_stg_flow;
-    if (ratio < stg_flow_ratio) {
+    double stg_flow_ratio = max_stg_flow /  it->second.feed_flow;
+    if (ratio > stg_flow_ratio) {
       ratio = stg_flow_ratio;
     }
   }
   for (it = (*this).stgs_config.begin(); it != (*this).stgs_config.end();
        it++) {
-    it->second.feed_flow *= 1. / ratio;
+    it->second.feed_flow *= ratio;
   }
-  (*this).feed_flow *= 1. / ratio;
+  (*this).feed_flow *= ratio;
 }
 
 void CascadeConfig::UpdateCut() {
@@ -431,5 +432,20 @@ void CascadeConfig::UpdateByGamma(){
     it->second.TailAssay();
   }
 }
+
+
+double CascadeConfig::ProductFlow() {
+  StageConfig last_stg = stgs_config.rbegin()->second;
+  return last_stg.feed_flow * last_stg.cut;
+}
+
+double CascadeConfig::TailFlow() {
+  StageConfig first_stg = stgs_config.begin()->second;
+  return first_stg.feed_flow * first_stg.cut;
+}
+
+
+
+
 
 }  // namespace mbmore
