@@ -130,10 +130,15 @@ void StageConfig::BuildIdealStg(double f_assay, double precision) {
     AlphaByDU();
     beta = alpha;
     CutByAlphaBeta();
+  } else if (alpha != -1) {
+    beta = alpha;
+    CutByAlphaBeta();
   } else {
+    AlphaByDU();
     beta = alpha;
     CutByAlphaBeta();
   }
+
   ProductAssay();
   TailAssay();
 }

@@ -45,6 +45,65 @@ const double tol_assay = 1e-5;
 const double tol_qty = 1e-6;
 const double tol_num = 1e-2;
 
+// Check the ability of the stage to build itself as ideal
+TEST(StageConfig_Test, TestBuildIdealStage) {
+  
+  double precision = 1e-8;
+  StageConfig stg;
+  stg.centrifuge = centrifuge;
+  
+  double assays[4] = { 0.0071, 0.1, 0.35, 0.7};
+  for (int i = 0; i < 4; i++){
+    stg.alpha = -1;
+    stg.DU = -1;
+    
+    stg.BuildIdealStg(assays[i], precision);
+    EXPECT_NEAR(stg.alpha, stg.beta, precision);
+  }
+
+  //checking with existing DU
+  for (int i = 0; i < 4; i++){
+    stg.alpha = -1;
+    stg.DU = centrifuge.ComputeDeltaU(cut);;
+    
+    stg.BuildIdealStg(assays[i], precision);
+    EXPECT_NEAR(stg.alpha, stg.beta, precision);
+  }
+  
+  //checking with existing DU
+  double alphas[4] = { 0.43, 0.45, 0.50, 0.55};
+  for (int i = 0; i < 4; i++){
+    for (int j = 0; j < 4; j++){
+      stg.alpha = alphas[j];
+      stg.DU = -1;
+      
+      stg.BuildIdealStg(assays[i], precision);
+      EXPECT_NEAR(stg.alpha, stg.beta, precision);
+    }
+  } 
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// Check the ability of the stage to determine the ideal cut for a specific
+// feed assay
+TEST(StageConfig_Test, TestCutIdealStg) {
+  
+  double precision = 1e-8;
+  StageConfig stg;
+  stg.centrifuge = centrifuge;
+  
+  double assays[4] = { 0.0071, 0.1, 0.35, 0.7};
+  for (int i = 0; i < 4; i++){
+    stg.alpha = -1;
+    stg.DU = -1;
+    
+    stg.CutForIdealStg(assays[i], precision);
+    EXPECT_NEAR(stg.alpha, stg.beta, precision);
+  }
+}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // Find product assay from separation factor alpha
 TEST(StageConfig_Test, TestAssays) {
