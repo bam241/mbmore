@@ -7,19 +7,19 @@
 #include <limits>
 #include <sstream>
 #include <vector>
-
+#include <iostream>
 /*
 @article{alexander_glaser_characteristics_2008,
-	title = {Characteristics of the {Gas} {Centrifuge} for {Uranium} {Enrichment} and {Their} {Relevance} for {Nuclear} {Weapon} {Proliferation}},
-	issn = {1547-7800},
-	doi = {10.1080/08929880802335998},
-	number = {16},
-	journal = {Science and Global Security},
-	author = {Alexander Glaser},
-	year = {2008},
-	pages = {1--25},
-	annote = {From Tamara},
-	file = {2008aglaser_sgsvol16.pdf:/Users/mouginot/Zotero/storage/UAGA49FS/2008aglaser_sgsvol16.pdf:application/pdf}
+    title = {Characteristics of the {Gas} {Centrifuge} for {Uranium} {Enrichment} and {Their} {Relevance} for {Nuclear} {Weapon} {Proliferation}},
+    issn = {1547-7800},
+    doi = {10.1080/08929880802335998},
+    number = {16},
+    journal = {Science and Global Security},
+    author = {Alexander Glaser},
+    year = {2008},
+    pages = {1--25},
+    annote = {From Tamara},
+    file = {2008aglaser_sgsvol16.pdf:/Users/mouginot/Zotero/storage/UAGA49FS/2008aglaser_sgsvol16.pdf:application/pdf}
 }
 */
 namespace mbmore {
@@ -63,7 +63,7 @@ CentrifugeConfig::CentrifugeConfig(double v_a_, double h_, double d_, double fee
   dM = dM_;
   D_rho = 2.2e-5;     // kg/m/s
   gas_const = 8.314;  // J/K/mol
-  M_238 = 0.238;      // kg/mol
+  M_238 = 0.2380289;      // kg/mol
 }
 
 double CentrifugeConfig::ComputeDeltaU(double cut) {
@@ -73,9 +73,14 @@ double CentrifugeConfig::ComputeDeltaU(double cut) {
   double a = diameter / 2.0;  // outer radius
 
   // withdrawl radius for heavy isotope
-  // Glaser 2009 says operationally it ranges from 0.96-0.99
-  double r2 = 0.975 * a;
-
+  // Glaser 2009 says operationally it ranges from 0.96-0.99 -> does varies with velocity assuming linear betwen 320 and 750m/s
+  double v_start = 450;
+  double r2 = 0.975 * a;//double r2 = ((0.96-(0.99-0.96)/(750-v_start)*v_start) + (0.99-0.96)/(750-v_start)*v_a) * a;
+  // limits at the edge of the linar extrapolation
+  //if (v_a<v_start)
+  //  r2 = 0.96*a;
+  //else if(v_a >750)
+  //  r2 = 0.99*a;
   // Glaser: if v_a < 380 then r1_over_r2 = cte = 0.534
   double r1_over_r2 = 0;
   if (v_a > 380){
@@ -95,18 +100,19 @@ double CentrifugeConfig::ComputeDeltaU(double cut) {
   // Converting from molecular mass to atomic mass (assuming U238)
   // Warning: This assumption is only valid at low enrichment
   // TODO: EXPLICITLY CALCULATE ATOMIC MASS GIVEN FEED ASSAY
-  double C1 = (2.0 * M_PI * (D_rho * M_238 / M) / (log(r2 / r1)));
-  //double C1 = (2.0 * M_PI * D_rho / (log(r2 / r1)));
-  double A_p = C1 * (1.0 / feed) *
+  //double C1 = (2.0 * M_PI * (D_rho * M_238 / M) / (log(r2 / r1)));
+  double ratio_UF6_U = M_238 / M;
+  double C1 = (2.0 * M_PI * D_rho *ratio_UF6_U / (log(r2 / r1)));
+  double A_p = C1 * (1.0 / feed/(ratio_UF6_U)) *
                (cut / ((1.0 + flow_ratio) * (1.0 - cut + flow_ratio)));
-  double A_w = C1 * (1.0 / feed) *
+  double A_w = C1 * (1.0 / feed/(ratio_UF6_U)) *
                ((1.0 - cut) / (flow_ratio * (1.0 - cut + flow_ratio)));
 
   double C_therm = CalcCTherm(v_a, temp, dM);
 
   // defining terms in the Ratz equation
-  double r1_over_r2_sq = r1_over_r2*r1_over_r2;
-  double C_scale = pow((r2 / a), 4) * (1 - r1_over_r2_sq)*(1 - r1_over_r2_sq);
+  double r1_over_r2_sq = pow(r1_over_r2,2);
+  double C_scale = pow((r2 / a), 4) * pow(1 - r1_over_r2_sq,2);
   double bracket1 = (1 + flow_ratio) / cut;
   double exp1 = exp(-1.0 * A_p * Z_p);
   double bracket2 = flow_ratio / (1 - cut);
@@ -116,7 +122,7 @@ double CentrifugeConfig::ComputeDeltaU(double cut) {
   double major_term =
       0.5 * cut * (1.0 - cut) * (C_therm*C_therm) * C_scale *
       pow(((bracket1 * (1 - exp1)) + (bracket2 * (1 - exp2))), 2);  // kg/s
-  double del_U = feed * major_term * eff;                           // kg/s
+  double del_U = feed *ratio_UF6_U * major_term ;//* eff;                           // kg/s
 
   return del_U;
 }

@@ -11,7 +11,7 @@ namespace mbmore {
 // Benchmarked using a regression test (expected values calculated manually)
 namespace stageconfig_test {
 // Fixed for a cascade separating out U235 from U238 in UF6 gas
-double M = 0.352;   // kg/mol UF6
+double M = 0.35202;   // kg/mol UF6
 double dM = 0.003;  // kg/mol U238 - U235
 double x = 1000;    // Pressure ratio (Glaser)
 
@@ -71,7 +71,103 @@ TEST(StageConfig_Test, TestAssays) {
 TEST(StageConfig_Test, TestSWU) {
   double expected_U = 7.03232816847e-08;
   double tol = 1e-9;
+  int k = 2;
+  double P1_F[5] = {0, 0, 12.6e-6, 6.4e-6, 3.9e-6};
+  CentrifugeConfig P1(320, 1.8, 0.1, P1_F[k], 320, 0.564, M, dM, x, k);
+  StageConfig stg_P1;
+  stg_P1.centrifuge = P1;
+  //std::cout << "P1, du: " << P1.ComputeDeltaU(0.50)*3600*24*365.25/M*0.238 << " "; 
+  //stg_P1.DU(P1.ComputeDeltaU(0.50)/M*0.238);
+  std::cout << "P1, du: " << P1.ComputeDeltaU(0.50)*3600*24*365.25 << " "; 
+  stg_P1.DU(P1.ComputeDeltaU(0.50));
+  //stg_P1.DU(2.5/3600/24/365);
+  stg_P1.cut(.5);
+  stg_P1.feed_assay(0.007);
+  stg_P1.AlphaByDU();
+  stg_P1.BetaByAlphaAndCut();
+  std::cout << stg_P1.feed_assay() << " " << stg_P1.alpha()*stg_P1.beta()<< std::endl;
+  stg_P1.feed_assay(0.07);
+  stg_P1.AlphaByDU();
+  stg_P1.BetaByAlphaAndCut();
+  std::cout << stg_P1.feed_assay() << " " << stg_P1.alpha()*stg_P1.beta()<< std::endl;
 
+  double P2_F[5] = {0, 0, 15e-6, 7.7e-6, 4.6e-6};
+  CentrifugeConfig P2(485, 1, 0.15, P2_F[k], 320, 0.465, M, dM, x, k);
+  StageConfig stg_P2;
+  stg_P2.centrifuge = P2;
+  //std::cout << "P2, du: " << P2.ComputeDeltaU(0.50)*3600*24*365.25/M*0.238 << " "; 
+  //stg_P2.DU(P2.ComputeDeltaU(0.50)/M*0.238);
+  std::cout << "P2, du: " << P2.ComputeDeltaU(0.50)*3600*24*365.25 << " "; 
+  stg_P2.DU(P2.ComputeDeltaU(0.50));
+  //stg_P2.DU(6./3600/24/365);
+  stg_P2.cut(.5);
+  stg_P2.feed_assay(0.007);
+  stg_P2.AlphaByDU();
+  stg_P2.BetaByAlphaAndCut();
+  std::cout << stg_P2.feed_assay() << " " << stg_P2.alpha()*stg_P2.beta()<< std::endl;
+  stg_P2.feed_assay(0.07);
+  stg_P2.AlphaByDU();
+  stg_P2.BetaByAlphaAndCut();
+  std::cout << stg_P2.feed_assay() << " " << stg_P2.alpha()*stg_P2.beta()<< std::endl;
+
+  double A1_F[5] = {0, 0, 51.4e-6, 26.2e-6, 15.9e-6};
+  CentrifugeConfig A1(600, 2, 0.2, A1_F[k], 320, 0.340, M, dM, x, k);
+  StageConfig stg_A1;
+  stg_A1.centrifuge = A1;
+  //std::cout << "A1, du: " << A1.ComputeDeltaU(0.50)*3600*24*365.25/M*0.238 << " "; 
+  //stg_A1.DU(A1.ComputeDeltaU(0.50)/M*0.238);
+  std::cout << "A1, du: " << A1.ComputeDeltaU(0.50)*3600*24*365.25 << " "; 
+  stg_A1.DU(A1.ComputeDeltaU(0.50));
+  //stg_A1.DU(20.6/3600/24/365);
+  stg_A1.cut(.5);
+  stg_A1.feed_assay(0.007);
+  stg_A1.AlphaByDU();
+  stg_A1.BetaByAlphaAndCut();
+  std::cout << stg_A1.feed_assay() << " " << stg_A1.alpha()*stg_A1.beta()<< std::endl;
+  stg_A1.feed_assay(0.07);
+  stg_A1.AlphaByDU();
+  stg_A1.BetaByAlphaAndCut();
+  std::cout << stg_A1.feed_assay() << " " << stg_A1.alpha()*stg_A1.beta()<< std::endl;
+
+  double A2_F[5] = {0, 0, 214e-6, 109e-6, 66e-6};
+  CentrifugeConfig A2(750, 5, 0.2, A2_F[k], 320, 0.263, M, dM, x, k);
+  StageConfig stg_A2;
+  stg_A2.centrifuge = A2;
+  //std::cout << "A2, du: " << A2.ComputeDeltaU(0.50)*3600*24*365.25/M*0.238 << " "; 
+  //stg_A2.DU(A2.ComputeDeltaU(0.50)/M*0.238);
+  std::cout << "A2, du: " << A2.ComputeDeltaU(0.50)*3600*24*365.25 << " "; 
+  stg_A2.DU(A2.ComputeDeltaU(0.50));
+  //stg_A2.DU(97./3600/24/365);
+  stg_A2.cut(.5);
+  stg_A2.feed_assay(0.007);
+  stg_A2.AlphaByDU();
+  stg_A2.BetaByAlphaAndCut();
+  std::cout << stg_A2.feed_assay() << " "<< stg_A2.alpha()*stg_A2.beta()<< std::endl;
+  stg_A2.feed_assay(0.07);
+  stg_A2.AlphaByDU();
+  stg_A2.BetaByAlphaAndCut();
+  std::cout << stg_A2.feed_assay() << " "<< stg_A2.alpha()*stg_A2.beta()<< std::endl;
+
+  double A3_F[5] = {0, 0, 429e-6, 219e-6, 132e-6};
+  CentrifugeConfig A3(750, 10, 0.6, A3_F[k], 320, 0.263, M, dM, x, k);
+  StageConfig stg_A3;
+  stg_A3.centrifuge = A3;
+  //std::cout << "A3, du: " << A3.ComputeDeltaU(0.50)*3600*24*365.25/M*0.238 << " "; 
+  //stg_A3.DU(A3.ComputeDeltaU(0.50)/M*0.238);
+  std::cout << "A3, du: " << A3.ComputeDeltaU(0.50)*3600*24*365.25 << " "; 
+  stg_A3.DU(A3.ComputeDeltaU(0.50));
+  //stg_A3.DU(195./3600/24/365);
+  stg_A3.cut(.5);
+  stg_A3.feed_assay(0.007);
+  stg_A3.AlphaByDU();
+  stg_A3.BetaByAlphaAndCut();
+  std::cout << stg_A3.feed_assay() << " " << stg_A3.alpha()*stg_A3.beta()<< std::endl;
+  stg_A3.feed_assay(0.07);
+  stg_A3.AlphaByDU();
+  stg_A3.BetaByAlphaAndCut();
+  std::cout << stg_A3.feed_assay() << " " << stg_A3.alpha()*stg_A3.beta()<< std::endl;
+  
+  
   StageConfig stage(feed_assay, feed_m, cut, delU, -1, 1e-16);
 
   double expected_alpha = 1.16321;
